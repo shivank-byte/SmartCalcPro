@@ -6,7 +6,7 @@ utility tools. This repo contains **two versions** of the same app:
 | Version | Where | Runs on |
 |---|---|---|
 | 🖥️ Desktop app | `main.py` + `calculator_engine.py` + `themes.py` + `history.py` | Windows / macOS / Linux, via Python + Tkinter |
-| 📱 Web / installable app | `web/` folder (`index.html`, `manifest.json`, `sw.js`, icons) | Any phone or browser, as an installable PWA |
+| 📱 Web / installable app | `docs/` folder (`index.html`, `manifest.json`, `sw.js`, icons) | Any phone or browser, as an installable PWA |
 
 Both share the same feature set — Basic, Scientific, Statistics, Finance,
 and Utility calculators — but the web version is a self-contained
@@ -35,7 +35,7 @@ Files:
 
 ## 📱 Web version (installable app)
 
-Lives in the `web/` folder. It's a static site — no build step, no
+Lives in the `docs/` folder. It's a static site — no build step, no
 backend, no dependencies.
 
 **Files:**
@@ -45,13 +45,13 @@ backend, no dependencies.
 - `icon-192.png`, `icon-512.png` — app icons
 
 ### Run it locally
-Just open `web/index.html` in a browser — no server required for basic use.
+Just open `docs/index.html` in a browser — no server required for basic use.
 (The install prompt and offline support only activate once it's served over HTTPS — see below.)
 
 ### Publish it with GitHub Pages
 1. Push this repo to GitHub (if not already).
 2. Go to **Settings → Pages**.
-3. Under "Source," select your branch and the `/web` folder as the root.
+3. Under "Source," select your branch and the `/docs` folder as the root.
 4. Save. GitHub will give you a URL like:
    `https://<your-username>.github.io/<repo-name>/`
 
@@ -77,3 +77,4 @@ offline thanks to the service worker.
 - The web version keeps calculation history in the browser's local
   storage for that installed app — it isn't synced anywhere.
 - The two versions are independent; changes to one don't affect the other.
+- 
