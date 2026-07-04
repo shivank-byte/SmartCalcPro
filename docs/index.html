@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SmartCalc Pro</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SmartCalc">
+<meta name="theme-color" content="#14171c">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#14171c;
+    --panel:#1b2027;
+    --panel-raised:#232933;
+    --panel-raised-2:#2a3138;
+    --border:#2c333d;
+    --text:#e7eaf0;
+    --text-muted:#8890a0;
+    --accent:#48e5a2;
+    --accent-dim:rgba(72,229,162,0.14);
+    --accent-ink:#06110c;
+    --danger:#ff6f6f;
+    --danger-dim:rgba(255,111,111,0.12);
+    --amber:#f2a93b;
+    --font-ui:'IBM Plex Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+    --font-mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+    --radius:14px;
+    --safe-top:env(safe-area-inset-top,0px);
+    --safe-bottom:env(safe-area-inset-bottom,0px);
+  }
+  html.light{
+    --bg:#eef1f0;
+    --panel:#ffffff;
+    --panel-raised:#f4f6f5;
+    --panel-raised-2:#eceff0;
+    --border:#d8dedd;
+    --text:#1a1e24;
+    --text-muted:#5c6472;
+    --accent:#0e9f6e;
+    --accent-dim:rgba(14,159,110,0.10);
+    --accent-ink:#eafff5;
+    --danger:#c93f3f;
+    --danger-dim:rgba(201,63,63,0.08);
+    --amber:#b5750f;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--font-ui);
+    -webkit-tap-highlight-color:transparent;
+    overscroll-behavior-y:contain;
+    transition:background .25s ease,color .25s ease;
+  }
+  button,input,select,textarea{ font-family:inherit; color:inherit; }
+  button{ cursor:pointer; }
+  :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+
+  .app{
+    max-width:560px;
+    margin:0 auto;
+    min-height:100%;
+    display:flex;
+    flex-direction:column;
+    padding-top:var(--safe-top);
+    padding-bottom:var(--safe-bottom);
+  }
+
+  /* ---------- Top bar ---------- */
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:18px 18px 6px;
+  }
+  .brand{
+    font-family:var(--font-mono);
+    font-size:19px;
+    font-weight:700;
+    letter-spacing:-0.02em;
+    display:flex;
+    align-items:baseline;
+    gap:7px;
+  }
+  .brand-mark{ color:var(--accent); font-size:22px; }
+  .brand-pro{ color:var(--text-muted); font-weight:500; font-size:12px; letter-spacing:.14em; text-transform:uppercase; align-self:center; }
+  .topbar-actions{ display:flex; gap:8px; }
+  .icon-btn{
+    width:38px; height:38px;
+    border-radius:10px;
+    background:var(--panel-raised);
+    border:1px solid var(--border);
+    color:var(--text);
+    font-size:16px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .icon-btn:active{ background:var(--panel-raised-2); }
+
+  /* ---------- Mode tabs (physical rocker-key strip) ---------- */
+  .mode-tabs{
+    display:flex;
+    gap:6px;
+    padding:12px 14px 4px;
+    overflow-x:auto;
+    scrollbar-width:none;
+  }
+  .mode-tabs::-webkit-scrollbar{ display:none; }
+  .mode-tab{
+    flex:0 0 auto;
+    padding:9px 14px;
+    border-radius:999px;
+    border:1px solid var(--border);
+    background:var(--panel);
+    color:var(--text-muted);
+    font-size:13px;
+    font-weight:600;
+    letter-spacing:.01em;
+    white-space:nowrap;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.02);
+  }
+  .mode-tab.active{
+    background:var(--accent-dim);
+    border-color:var(--accent);
+    color:var(--accent);
+  }
+
+  /* ---------- Content ---------- */
+  .content{ flex:1; padding:10px 16px 24px; }
+  .panel{ display:none; animation:fadeIn .18s ease; }
+  .panel.active{ display:block; }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+
+  .section-note{
+    font-size:12px;
+    color:var(--text-muted);
+    margin:6px 2px 14px;
+  }
+
+  /* ---------- LCD readout (signature element) ---------- */
+  .lcd{
+    position:relative;
+    background:#0b1712;
+    border:1px solid #0a2118;
+    border-radius:12px;
+    padding:18px 16px;
+    margin:14px 0 16px;
+    font-family:var(--font-mono);
+    color:#5cf5b0;
+    text-shadow:0 0 6px rgba(92,245,176,0.45);
+    min-height:34px;
+    overflow-x:auto;
+    white-space:nowrap;
+    text-align:right;
+    box-shadow:inset 0 2px 10px rgba(0,0,0,0.5);
+  }
+  .lcd::before{
+    content:"";
+    position:absolute; inset:0;
+    border-radius:12px;
+    background:repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px, transparent 1px, transparent 3px);
+    pointer-events:none;
+  }
+  .lcd.empty{ color:#3a5348; text-shadow:none; }
+  .lcd.error{ color:#ff8f8f; text-shadow:0 0 6px rgba(255,90,90,0.35); }
+  .lcd-expr{ display:block; font-size:12px; color:#3fae82; opacity:.85; margin-bottom:4px; }
+  .lcd.error .lcd-expr{ display:none; }
+  .lcd-eq{ display:block; font-size:22px; font-weight:600; }
+  .lcd-multiline .lcd-eq{ display:block; font-size:16px; font-weight:500; text-align:left; white-space:normal; line-height:1.55; }
+
+  /* ---------- Basic dual input ---------- */
+  .dual-input{ display:flex; gap:10px; }
+  .field{ display:flex; flex-direction:column; gap:6px; margin-bottom:12px; flex:1; }
+  .field-label{ font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-muted); font-weight:600; }
+  input[type="number"], input[type="text"], input[type="date"], select, textarea{
+    background:var(--panel-raised);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:11px 12px;
+    font-size:15px;
+    color:var(--text);
+    width:100%;
+  }
+  select{ appearance:none; -webkit-appearance:none; background-image:linear-gradient(45deg, transparent 50%, var(--text-muted) 50%), linear-gradient(135deg, var(--text-muted) 50%, transparent 50%); background-position: calc(100% - 18px) center, calc(100% - 13px) center; background-size:5px 5px, 5px 5px; background-repeat:no-repeat; }
+  textarea{ resize:vertical; min-height:84px; font-family:var(--font-mono); font-size:14px; }
+
+  /* ---------- Keypad grid ---------- */
+  .keypad{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:4px; }
+  .keypad-btn{
+    background:linear-gradient(180deg, var(--panel-raised), var(--panel));
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:12px 6px;
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+    box-shadow:0 2px 0 rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.03);
+  }
+  html.light .keypad-btn{ box-shadow:0 2px 0 rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.6); }
+  .keypad-btn:active{ transform:translateY(1px); box-shadow:none; background:var(--accent-dim); }
+  .key-op{ font-family:var(--font-mono); font-size:16px; font-weight:600; color:var(--accent); }
+  .key-label{ font-size:10.5px; color:var(--text-muted); text-align:center; line-height:1.2; }
+
+  /* ---------- Sub tabs (finance / utility tool switchers) ---------- */
+  .subtabs{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; }
+  .subtab{
+    padding:7px 12px;
+    border-radius:8px;
+    border:1px solid var(--border);
+    background:var(--panel);
+    color:var(--text-muted);
+    font-size:12.5px;
+    font-weight:600;
+  }
+  .subtab.active{ background:var(--panel-raised-2); color:var(--text); border-color:var(--accent); }
+  .subpanel{ display:none; }
+  .subpanel.active{ display:block; }
+
+  .tool-form .field{ margin-bottom:12px; }
+  .btn-primary{
+    width:100%;
+    padding:13px;
+    border-radius:10px;
+    border:none;
+    background:var(--accent);
+    color:var(--accent-ink);
+    font-weight:700;
+    font-size:14.5px;
+    letter-spacing:.01em;
+    margin-top:2px;
+  }
+  .btn-primary:active{ filter:brightness(0.92); }
+  .btn-danger{
+    width:100%;
+    padding:12px;
+    border-radius:10px;
+    border:1px solid var(--danger);
+    background:var(--danger-dim);
+    color:var(--danger);
+    font-weight:600;
+    font-size:13.5px;
+  }
+
+  .result-box{
+    margin-top:12px;
+    padding:14px;
+    border-radius:10px;
+    background:var(--panel-raised);
+    border:1px solid var(--border);
+    font-size:14px;
+    line-height:1.65;
+    min-height:20px;
+  }
+  .result-box:empty{ display:none; }
+  .result-box.error{ color:var(--danger); background:var(--danger-dim); border-color:var(--danger); }
+
+  /* ---------- Status bar ---------- */
+  .statusbar{
+    padding:9px 16px calc(9px + var(--safe-bottom));
+    font-size:12px;
+    color:var(--text-muted);
+    border-top:1px solid var(--border);
+    background:var(--panel);
+    text-align:center;
+  }
+
+  /* ---------- History drawer ---------- */
+  .scrim{
+    position:fixed; inset:0;
+    background:rgba(0,0,0,0.45);
+    opacity:0; pointer-events:none;
+    transition:opacity .2s ease;
+    z-index:40;
+  }
+  .scrim.open{ opacity:1; pointer-events:auto; }
+  .history-drawer{
+    position:fixed;
+    right:0; top:0; bottom:0;
+    width:min(360px, 88vw);
+    background:var(--panel);
+    border-left:1px solid var(--border);
+    transform:translateX(100%);
+    transition:transform .25s ease;
+    z-index:41;
+    display:flex; flex-direction:column;
+    padding-top:var(--safe-top);
+    padding-bottom:var(--safe-bottom);
+  }
+  .history-drawer.open{ transform:translateX(0); }
+  .history-header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:18px 16px 12px;
+    font-weight:700;
+    font-size:15px;
+    border-bottom:1px solid var(--border);
+  }
+  .history-header button{
+    width:30px; height:30px; border-radius:8px; border:1px solid var(--border);
+    background:var(--panel-raised); font-size:14px;
+  }
+  .history-list{ flex:1; overflow-y:auto; padding:10px 16px; }
+  .history-empty{ color:var(--text-muted); font-size:13px; padding:20px 2px; text-align:center; }
+  .history-item{
+    padding:10px 0;
+    border-bottom:1px solid var(--border);
+    font-size:12.5px;
+  }
+  .history-time{ color:var(--text-muted); font-family:var(--font-mono); font-size:10.5px; display:block; margin-bottom:3px; }
+  .history-expr{ color:var(--text-muted); }
+  .history-eq{ font-family:var(--font-mono); color:var(--accent); }
+  .history-drawer .btn-danger{ margin:12px 16px 16px; width:auto; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">&Sigma;</span>SmartCalc<span class="brand-pro">Pro</span></div>
+    <div class="topbar-actions">
+      <button class="icon-btn" id="historyBtn" aria-label="History">&#8987;</button>
+      <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">&#9680;</button>
+    </div>
+  </header>
+
+  <nav class="mode-tabs" id="modeTabs">
+    <button class="mode-tab active" data-mode="basic">Basic</button>
+    <button class="mode-tab" data-mode="scientific">Scientific</button>
+    <button class="mode-tab" data-mode="stats">Statistics</button>
+    <button class="mode-tab" data-mode="finance">Finance</button>
+    <button class="mode-tab" data-mode="utility">Utility</button>
+  </nav>
+
+  <main class="content" id="content">
+
+    <section class="panel active" data-panel="basic">
+      <div class="dual-input">
+        <label class="field"><span class="field-label">A</span><input type="number" inputmode="decimal" id="basicA" step="any"></label>
+        <label class="field"><span class="field-label">B</span><input type="number" inputmode="decimal" id="basicB" step="any"></label>
+      </div>
+      <div class="lcd empty" id="basicResult"><span class="lcd-eq">Result will appear here</span></div>
+      <div class="keypad" id="basicKeypad"></div>
+    </section>
+
+    <section class="panel" data-panel="scientific">
+      <label class="field"><span class="field-label">Value</span><input type="number" inputmode="decimal" id="sciValue" step="any"></label>
+      <div class="lcd empty" id="sciResult"><span class="lcd-eq">Result will appear here</span></div>
+      <div class="keypad" id="sciKeypad"></div>
+    </section>
+
+    <section class="panel" data-panel="stats">
+      <label class="field"><span class="field-label">Numbers (space or comma separated)</span>
+        <textarea id="statsInput" placeholder="e.g. 10 20 30 40 50"></textarea>
+      </label>
+      <button class="btn-primary" id="statsBtn">Calculate statistics</button>
+      <div class="lcd empty lcd-multiline" id="statsResult" style="margin-top:14px;"><span class="lcd-eq">Results will appear here</span></div>
+    </section>
+
+    <section class="panel" data-panel="finance" id="financePanel"></section>
+
+    <section class="panel" data-panel="utility" id="utilityPanel"></section>
+
+  </main>
+
+  <footer class="statusbar" id="statusBar">Ready</footer>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<aside class="history-drawer" id="historyDrawer">
+  <div class="history-header">Calculation History
+    <button id="closeHistory" aria-label="Close">&#10005;</button>
+  </div>
+  <div class="history-list" id="historyList"></div>
+  <button class="btn-danger" id="clearHistory">Clear history</button>
+</aside>
+
+<script>
+(function(){
+  "use strict";
+
+  /* =====================================================
+     Calculation engine (ported from calculator_engine.py)
+     ===================================================== */
+  function err(msg){ throw new Error(msg); }
+
+  const Calc = {
+    add:(a,b)=>a+b,
+    subtract:(a,b)=>a-b,
+    multiply:(a,b)=>a*b,
+    divide:(a,b)=> b===0 ? err("Cannot divide by zero") : a/b,
+    modulus:(a,b)=> b===0 ? err("Cannot take modulus by zero") : a%b,
+    power:(a,b)=>Math.pow(a,b),
+    square:(a)=>a*a,
+    cube:(a)=>a*a*a,
+    percentage:(part,whole)=> whole===0 ? err("Whole value cannot be zero") : (part/whole)*100,
+
+    sqrt:(a)=> a<0 ? err("Cannot take square root of a negative number") : Math.sqrt(a),
+    cbrt:(a)=> Math.cbrt(a),
+    factorial:(a)=>{
+      if(a<0 || a!==Math.trunc(a)) err("Factorial requires a non-negative integer");
+      if(a>5000) err("Number too large for factorial");
+      let r=1n;
+      for(let i=2n;i<=BigInt(a);i++) r*=i;
+      return r;
+    },
+    ln:(a)=> a<=0 ? err("Log requires a positive number") : Math.log(a),
+    log10:(a)=> a<=0 ? err("Log requires a positive number") : Math.log10(a),
+    exp:(a)=> Math.exp(a),
+    sinDeg:(a)=> Math.sin(a*Math.PI/180),
+    cosDeg:(a)=> Math.cos(a*Math.PI/180),
+    tanDeg:(a)=> Math.tan(a*Math.PI/180),
+  };
+
+  function parseNumbers(text){
+    const parts = text.replace(/,/g," ").trim().split(/\s+/).filter(Boolean);
+    if(parts.length===0) err("Enter at least one number");
+    const values = parts.map(p=>{
+      const v=parseFloat(p);
+      if(Number.isNaN(v)) err("Enter numbers separated by spaces or commas");
+      return v;
+    });
+    return values;
+  }
+
+  function statsSummary(values){
+    const count=values.length;
+    const mean = values.reduce((s,v)=>s+v,0)/count;
+    const sorted=[...values].sort((a,b)=>a-b);
+    const median = count%2===1 ? sorted[(count-1)/2] : (sorted[count/2-1]+sorted[count/2])/2;
+    const maximum=Math.max(...values), minimum=Math.min(...values);
+    const range=maximum-minimum;
+    const freq=new Map();
+    values.forEach(v=>freq.set(v,(freq.get(v)||0)+1));
+    let modeVal=values[0], modeCount=0;
+    for(const v of values){ const c=freq.get(v); if(c>modeCount){ modeCount=c; modeVal=v; } }
+    const mode = modeCount>1 ? modeVal : "No unique mode";
+    let variance=0, stdev=0;
+    if(count>1){
+      variance = values.reduce((s,v)=>s+(v-mean)**2,0)/(count-1);
+      stdev = Math.sqrt(variance);
+    }
+    return {count,mean,median,maximum,minimum,range,mode,stdev,variance};
+  }
+
+  const TEMP_UNITS=["Celsius","Fahrenheit","Kelvin"];
+  function convertTemperature(value, from, to){
+    if(from===to) return value;
+    let celsius;
+    if(from==="Celsius") celsius=value;
+    else if(from==="Fahrenheit") celsius=(value-32)*5/9;
+    else if(from==="Kelvin") celsius=value-273.15;
+    else return err("Unknown unit: "+from);
+    if(to==="Celsius") return celsius;
+    if(to==="Fahrenheit") return celsius*9/5+32;
+    if(to==="Kelvin"){
+      const r=celsius+273.15;
+      if(r<0) err("Resulting Kelvin temperature cannot be negative");
+      return r;
+    }
+    return err("Unknown unit: "+to);
+  }
+
+  const LENGTH_TO_METERS={ "Millimeters":0.001,"Centimeters":0.01,"Meters":1.0,"Kilometers":1000.0,"Inches":0.0254,"Feet":0.3048,"Miles":1609.34 };
+  function convertLength(value, from, to){
+    if(!(from in LENGTH_TO_METERS) || !(to in LENGTH_TO_METERS)) err("Unknown length unit");
+    return value*LENGTH_TO_METERS[from]/LENGTH_TO_METERS[to];
+  }
+
+  const WEIGHT_TO_KG={ "Grams":0.001,"Kilograms":1.0,"Pounds":0.453592,"Ounces":0.0283495 };
+  function convertWeight(value, from, to){
+    if(!(from in WEIGHT_TO_KG) || !(to in WEIGHT_TO_KG)) err("Unknown weight unit");
+    return value*WEIGHT_TO_KG[from]/WEIGHT_TO_KG[to];
+  }
+
+  function ageCalculator(y,m,d){
+    const birth=new Date(y,m-1,d);
+    if(birth.getFullYear()!==y || birth.getMonth()!==m-1 || birth.getDate()!==d) err("Use format YYYY-MM-DD");
+    const today=new Date(); today.setHours(0,0,0,0); birth.setHours(0,0,0,0);
+    if(birth>today) err("Birth date cannot be in the future");
+    let years=today.getFullYear()-birth.getFullYear();
+    let months=today.getMonth()-birth.getMonth();
+    let days=today.getDate()-birth.getDate();
+    if(days<0){
+      months-=1;
+      const prevMonthLastDay=new Date(today.getFullYear(), today.getMonth(), 0).getDate();
+      days+=prevMonthLastDay;
+    }
+    if(months<0){ months+=12; years-=1; }
+    const totalDays=Math.round((today-birth)/86400000);
+    return {years,months,days,totalDays};
+  }
+
+  /* ---------- formatting helpers ---------- */
+  function fmt(x,d=2){
+    if(typeof x!=="number" || !isFinite(x)) return String(x);
+    return x.toFixed(d);
+  }
+  function fmtAuto(x){
+    if(typeof x==="bigint") return x.toString();
+    if(typeof x==="string") return x;
+    if(typeof x!=="number" || !isFinite(x)) return String(x);
+    if(Number.isInteger(x)) return String(x);
+    let s=x.toFixed(6);
+    s=s.replace(/0+$/,"").replace(/\.$/,"");
+    return s;
+  }
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  }
+
+  /* =====================================================
+     History (persisted via window.storage)
+     ===================================================== */
+  let historyEntries=[];
+
+  async function loadHistory(){
+    try{
+      const res = await window.storage.get("history", false);
+      historyEntries = res && res.value ? JSON.parse(res.value) : [];
+    }catch(e){
+      historyEntries=[];
+    }
+    renderHistory();
+  }
+
+  async function pushHistory(expr, result){
+    const entry={ ts:new Date().toLocaleString(), expr, result };
+    historyEntries.unshift(entry);
+    if(historyEntries.length>200) historyEntries.length=200;
+    renderHistory();
+    try{ await window.storage.set("history", JSON.stringify(historyEntries), false); }catch(e){ /* non-blocking */ }
+  }
+
+  async function clearHistoryAll(){
+    historyEntries=[];
+    renderHistory();
+    try{ await window.storage.delete("history", false); }catch(e){ /* ignore */ }
+  }
+
+  function renderHistory(){
+    const list=document.getElementById("historyList");
+    if(historyEntries.length===0){
+      list.innerHTML = '<div class="history-empty">No history yet. Your calculations will show up here.</div>';
+      return;
+    }
+    list.innerHTML = historyEntries.map(h=>`
+      <div class="history-item">
+        <span class="history-time">${escapeHtml(h.ts)}</span>
+        <span class="history-expr">${escapeHtml(h.expr)}</span> &rarr;
+        <span class="history-eq">${escapeHtml(h.result)}</span>
+      </div>`).join("");
+  }
+
+  function setStatus(text){ document.getElementById("statusBar").textContent=text; }
+
+  /* =====================================================
+     Mode tab switching
+     ===================================================== */
+  document.getElementById("modeTabs").addEventListener("click", (e)=>{
+    const btn=e.target.closest(".mode-tab");
+    if(!btn) return;
+    document.querySelectorAll(".mode-tab").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    const mode=btn.dataset.mode;
+    document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("active", p.dataset.panel===mode));
+  });
+
+  /* =====================================================
+     Basic tab
+     ===================================================== */
+  const basicOps=[
+    {label:"Add", symbol:"+", needsB:true, fn:Calc.add},
+    {label:"Subtract", symbol:"\u2212", needsB:true, fn:Calc.subtract},
+    {label:"Multiply", symbol:"\u00d7", needsB:true, fn:Calc.multiply},
+    {label:"Divide", symbol:"\u00f7", needsB:true, fn:Calc.divide},
+    {label:"Modulus", symbol:"%", needsB:true, fn:Calc.modulus},
+    {label:"Power", symbol:"^", needsB:true, fn:Calc.power},
+    {label:"Square", symbol:"A\u00b2", needsB:false, fn:Calc.square},
+    {label:"Cube", symbol:"A\u00b3", needsB:false, fn:Calc.cube},
+    {label:"% of B", symbol:"%B", needsB:true, fn:Calc.percentage},
+  ];
+
+  function showResult(el, expr, result){
+    el.classList.remove("empty","error");
+    const formatted=fmtAuto(result);
+    el.innerHTML = `<span class="lcd-expr">${escapeHtml(expr)}</span><span class="lcd-eq">${escapeHtml(formatted)}</span>`;
+    setStatus(`Calculated: ${expr} = ${formatted}`);
+    pushHistory(expr, formatted);
+  }
+  function showError(el, message){
+    el.classList.remove("empty");
+    el.classList.add("error");
+    el.innerHTML = `<span class="lcd-eq">Error: ${escapeHtml(message)}</span>`;
+    setStatus(`Error: ${message}`);
+  }
+
+  function buildBasicPanel(){
+    const aInput=document.getElementById("basicA");
+    const bInput=document.getElementById("basicB");
+    const resultEl=document.getElementById("basicResult");
+    const keypad=document.getElementById("basicKeypad");
+    basicOps.forEach(op=>{
+      const btn=document.createElement("button");
+      btn.className="keypad-btn";
+      btn.innerHTML=`<span class="key-op">${op.symbol}</span><span class="key-label">${op.label}</span>`;
+      btn.addEventListener("click", ()=>{
+        try{
+          const a=parseFloat(aInput.value);
+          if(Number.isNaN(a)) err("Enter valid numbers");
+          let b=null;
+          if(op.needsB){
+            b=parseFloat(bInput.value);
+            if(Number.isNaN(b)) err("Enter valid numbers");
+          }
+          const result = op.needsB ? op.fn(a,b) : op.fn(a);
+          const expr = op.needsB ? `${a} ${op.symbol} ${b}` : `${op.label}(${a})`;
+          showResult(resultEl, expr, result);
+        }catch(e){ showError(resultEl, e.message); }
+      });
+      keypad.appendChild(btn);
+    });
+  }
+
+  /* =====================================================
+     Scientific tab
+     ===================================================== */
+  const sciOps=[
+    {label:"\u221a Square Root", key:"sqrt", fn:Calc.sqrt},
+    {label:"\u221b Cube Root", key:"cbrt", fn:Calc.cbrt},
+    {label:"! Factorial", key:"fact", fn:Calc.factorial},
+    {label:"ln (natural log)", key:"ln", fn:Calc.ln},
+    {label:"log10", key:"log10", fn:Calc.log10},
+    {label:"e\u02e3", key:"exp", fn:Calc.exp},
+    {label:"sin (degrees)", key:"sin", fn:Calc.sinDeg},
+    {label:"cos (degrees)", key:"cos", fn:Calc.cosDeg},
+    {label:"tan (degrees)", key:"tan", fn:Calc.tanDeg},
+  ];
+
+  function buildSciPanel(){
+    const valInput=document.getElementById("sciValue");
+    const resultEl=document.getElementById("sciResult");
+    const keypad=document.getElementById("sciKeypad");
+    sciOps.forEach(op=>{
+      const btn=document.createElement("button");
+      btn.className="keypad-btn";
+      btn.innerHTML=`<span class="key-op">${op.key}</span><span class="key-label">${op.label}</span>`;
+      btn.addEventListener("click", ()=>{
+        try{
+          const a=parseFloat(valInput.value);
+          if(Number.isNaN(a)) err("Enter a valid number");
+          const result=op.fn(a);
+          showResult(resultEl, `${op.key}(${a})`, result);
+        }catch(e){ showError(resultEl, e.message); }
+      });
+      keypad.appendChild(btn);
+    });
+  }
+
+  /* =====================================================
+     Statistics tab
+     ===================================================== */
+  function buildStatsPanel(){
+    const input=document.getElementById("statsInput");
+    const resultEl=document.getElementById("statsResult");
+    document.getElementById("statsBtn").addEventListener("click", ()=>{
+      try{
+        const values=parseNumbers(input.value);
+        const s=statsSummary(values);
+        const lines=[
+          `Count: ${s.count}`,
+          `Mean: ${fmt(s.mean,4)}`,
+          `Median: ${fmt(s.median,4)}`,
+          `Maximum: ${fmt(s.maximum,4)}`,
+          `Minimum: ${fmt(s.minimum,4)}`,
+          `Range: ${fmt(s.range,4)}`,
+          `Mode: ${typeof s.mode==="number" ? fmt(s.mode,4) : s.mode}`,
+          `Std Dev: ${fmt(s.stdev,4)}`,
+          `Variance: ${fmt(s.variance,4)}`,
+        ];
+        resultEl.classList.remove("empty","error");
+        resultEl.innerHTML = `<span class="lcd-eq">${lines.map(escapeHtml).join("<br>")}</span>`;
+        setStatus("Calculated statistics summary");
+        pushHistory(`stats(${input.value.trim()})`, lines.join("; "));
+      }catch(e){
+        resultEl.classList.remove("empty");
+        resultEl.classList.add("error");
+        resultEl.innerHTML = `<span class="lcd-eq">Error: ${escapeHtml(e.message)}</span>`;
+        setStatus(`Error: ${e.message}`);
+      }
+    });
+  }
+
+  /* =====================================================
+     Generic tool-form renderer (Finance + Utility tabs)
+     ===================================================== */
+  function renderToolGroup(container, tools){
+    const tabBar=document.createElement("div"); tabBar.className="subtabs";
+    const panelsWrap=document.createElement("div"); panelsWrap.className="subpanels";
+    tools.forEach((tool, idx)=>{
+      const btn=document.createElement("button");
+      btn.type="button";
+      btn.className="subtab"+(idx===0?" active":"");
+      btn.textContent=tool.label;
+      btn.dataset.idx=idx;
+      tabBar.appendChild(btn);
+
+      const panel=document.createElement("div");
+      panel.className="subpanel"+(idx===0?" active":"");
+      renderToolForm(panel, tool);
+      panelsWrap.appendChild(panel);
+    });
+    tabBar.addEventListener("click",(e)=>{
+      const btn=e.target.closest(".subtab");
+      if(!btn) return;
+      [...tabBar.children].forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      [...panelsWrap.children].forEach((p,i)=> p.classList.toggle("active", String(i)===btn.dataset.idx));
+    });
+    container.appendChild(tabBar);
+    container.appendChild(panelsWrap);
+  }
+
+  function renderToolForm(panel, tool){
+    const form=document.createElement("div");
+    form.className="tool-form";
+    const inputs={};
+
+    tool.fields.forEach(f=>{
+      const wrap=document.createElement("label");
+      wrap.className="field";
+      const span=document.createElement("span");
+      span.className="field-label";
+      span.textContent=f.label;
+      wrap.appendChild(span);
+
+      let input;
+      if(f.type==="select"){
+        input=document.createElement("select");
+        f.options.forEach((o,i)=>{
+          const opt=document.createElement("option");
+          opt.value=o; opt.textContent=o;
+          if(i===(f.defaultIndex||0)) opt.selected=true;
+          input.appendChild(opt);
+        });
+      }else if(f.type==="date"){
+        input=document.createElement("input");
+        input.type="date";
+      }else{
+        input=document.createElement("input");
+        input.type="number";
+        input.inputMode="decimal";
+        input.step="any";
+        if(f.default!==undefined) input.value=f.default;
+        if(f.placeholder) input.placeholder=f.placeholder;
+      }
+      wrap.appendChild(input);
+      form.appendChild(wrap);
+      inputs[f.id]=input;
+    });
+
+    const resultBox=document.createElement("div");
+    resultBox.className="result-box";
+
+    const btn=document.createElement("button");
+    btn.type="button";
+    btn.className="btn-primary";
+    btn.textContent="Calculate";
+
+    function run(){
+      try{
+        const values={};
+        tool.fields.forEach(f=>{
+          if(f.type==="select" || f.type==="date"){
+            values[f.id]=inputs[f.id].value;
+            if(f.type==="date" && !values[f.id]) err("Enter a birth date");
+          }else{
+            const v=parseFloat(inputs[f.id].value);
+            if(Number.isNaN(v)) err("Enter valid numbers");
+            values[f.id]=v;
+          }
+        });
+        const res=tool.compute(values);
+        resultBox.classList.remove("error");
+        resultBox.innerHTML=res.lines.map(l=>`<div>${escapeHtml(l)}</div>`).join("");
+        setStatus(`Calculated: ${res.historyExpr}`);
+        pushHistory(res.historyExpr, res.historyResult);
+      }catch(e){
+        resultBox.classList.add("error");
+        resultBox.textContent = e.message || "Enter valid values";
+        setStatus(`Error: ${e.message}`);
+      }
+    }
+    btn.addEventListener("click", run);
+    form.querySelectorAll('input[type="number"]').forEach(inp=>{
+      inp.addEventListener("keydown", (e)=>{ if(e.key==="Enter"){ e.preventDefault(); run(); } });
+    });
+
+    form.appendChild(resultBox);
+    form.appendChild(btn);
+    panel.appendChild(form);
+  }
+
+  /* ---------- Finance tools ---------- */
+  const financeTools=[
+    { label:"Simple Interest",
+      fields:[{id:"p",label:"Principal",type:"number"},{id:"r",label:"Annual Rate (%)",type:"number"},{id:"y",label:"Years",type:"number"}],
+      compute(v){
+        const {p,r,y}=v;
+        if(p<0||r<0||y<0) err("Principal, rate, and years must be non-negative");
+        const interest=(p*r*y)/100;
+        const lines=[`Interest: ${fmt(interest)}`, `Total Amount: ${fmt(p+interest)}`];
+        return {lines, historyExpr:`simple_interest(P=${p}, R=${r}%, Y=${y})`, historyResult:lines.join("; ")};
+      }},
+    { label:"Compound Interest",
+      fields:[{id:"p",label:"Principal",type:"number"},{id:"r",label:"Annual Rate (%)",type:"number"},{id:"y",label:"Years",type:"number"},{id:"n",label:"Compounds / year",type:"number",default:1}],
+      compute(v){
+        const {p,r,y}=v; const n=v.n||1;
+        if(p<0||r<0||y<0||n<=0) err("Principal, rate, and years must be non-negative; compounds must be > 0");
+        const amount=p*Math.pow(1+(r/100)/n, n*y);
+        const lines=[`Interest: ${fmt(amount-p)}`, `Total Amount: ${fmt(amount)}`];
+        return {lines, historyExpr:`compound_interest(P=${p}, R=${r}%, Y=${y}, n=${n})`, historyResult:lines.join("; ")};
+      }},
+    { label:"EMI",
+      fields:[{id:"p",label:"Loan Amount",type:"number"},{id:"r",label:"Annual Rate (%)",type:"number"},{id:"y",label:"Tenure (years)",type:"number"}],
+      compute(v){
+        const {p,r,y}=v;
+        if(p<=0||r<0||y<=0) err("Loan amount and years must be positive; rate must be non-negative");
+        const months=y*12;
+        let emi;
+        if(r===0){ emi=p/months; }
+        else{
+          const mr=(r/100)/12;
+          emi=(p*mr*Math.pow(1+mr,months))/(Math.pow(1+mr,months)-1);
+        }
+        const total=emi*months;
+        const lines=[`Monthly EMI: ${fmt(emi)}`, `Total Payment: ${fmt(total)}`, `Total Interest: ${fmt(total-p)}`];
+        return {lines, historyExpr:`emi(P=${p}, R=${r}%, Y=${y})`, historyResult:lines.join("; ")};
+      }},
+    { label:"CAGR",
+      fields:[{id:"i",label:"Initial Value",type:"number"},{id:"f",label:"Final Value",type:"number"},{id:"y",label:"Years",type:"number"}],
+      compute(v){
+        const {i,f,y}=v;
+        if(i<=0||y<=0) err("Initial value and years must be positive");
+        const c=(Math.pow(f/i,1/y)-1)*100;
+        const lines=[`CAGR: ${fmt(c)}%`];
+        return {lines, historyExpr:`cagr(I=${i}, F=${f}, Y=${y})`, historyResult:lines.join("; ")};
+      }},
+    { label:"% Change",
+      fields:[{id:"o",label:"Old Value",type:"number"},{id:"n",label:"New Value",type:"number"}],
+      compute(v){
+        const {o,n}=v;
+        if(o===0) err("Old value cannot be zero");
+        const c=((n-o)/Math.abs(o))*100;
+        const lines=[`Change: ${fmt(c)}%`];
+        return {lines, historyExpr:`pct_change(old=${o}, new=${n})`, historyResult:lines.join("; ")};
+      }},
+    { label:"Inflation Adj.",
+      fields:[{id:"a",label:"Amount",type:"number"},{id:"r",label:"Inflation Rate (%/yr)",type:"number"},{id:"y",label:"Years",type:"number"}],
+      compute(v){
+        const {a,r,y}=v;
+        if(a<0||y<0) err("Amount and years must be non-negative");
+        const out=a*Math.pow(1+r/100,y);
+        const lines=[`Adjusted value: ${fmt(out)}`];
+        return {lines, historyExpr:`inflation_adj(A=${a}, R=${r}%, Y=${y})`, historyResult:lines.join("; ")};
+      }},
+  ];
+
+  /* ---------- Utility tools ---------- */
+  const utilityTools=[
+    { label:"BMI",
+      fields:[{id:"w",label:"Weight (kg)",type:"number"},{id:"h",label:"Height (cm)",type:"number"}],
+      compute(v){
+        const {w,h}=v;
+        if(w<=0||h<=0) err("Weight and height must be positive");
+        const hm=h/100;
+        const bmi=w/(hm*hm);
+        let category;
+        if(bmi<18.5) category="Underweight";
+        else if(bmi<25) category="Normal weight";
+        else if(bmi<30) category="Overweight";
+        else category="Obese";
+        const lines=[`BMI: ${fmt(bmi)}`, `Category: ${category}`];
+        return {lines, historyExpr:`bmi(W=${w}kg, H=${h}cm)`, historyResult:lines.join("; ")};
+      }},
+    { label:"Age Calculator",
+      fields:[{id:"dob",label:"Birth date",type:"date"}],
+      compute(v){
+        const [y,m,d]=v.dob.split("-").map(Number);
+        const a=ageCalculator(y,m,d);
+        const lines=[`${a.years} years, ${a.months} months, ${a.days} days`, `Total days lived: ${a.totalDays}`];
+        return {lines, historyExpr:`age(${v.dob})`, historyResult:lines.join("; ")};
+      }},
+    { label:"Temperature",
+      fields:[{id:"v",label:"Value",type:"number"},{id:"from",label:"From",type:"select",options:TEMP_UNITS,defaultIndex:0},{id:"to",label:"To",type:"select",options:TEMP_UNITS,defaultIndex:1}],
+      compute(v){
+        const out=convertTemperature(v.v, v.from, v.to);
+        const lines=[`${fmt(out)} ${v.to}`];
+        return {lines, historyExpr:`temp(${v.v} ${v.from} -> ${v.to})`, historyResult:lines.join("; ")};
+      }},
+    { label:"Length",
+      fields:[{id:"v",label:"Value",type:"number"},{id:"from",label:"From",type:"select",options:Object.keys(LENGTH_TO_METERS),defaultIndex:0},{id:"to",label:"To",type:"select",options:Object.keys(LENGTH_TO_METERS),defaultIndex:2}],
+      compute(v){
+        const out=convertLength(v.v, v.from, v.to);
+        const lines=[`${fmt(out,4)} ${v.to}`];
+        return {lines, historyExpr:`length(${v.v} ${v.from} -> ${v.to})`, historyResult:lines.join("; ")};
+      }},
+    { label:"Weight",
+      fields:[{id:"v",label:"Value",type:"number"},{id:"from",label:"From",type:"select",options:Object.keys(WEIGHT_TO_KG),defaultIndex:0},{id:"to",label:"To",type:"select",options:Object.keys(WEIGHT_TO_KG),defaultIndex:1}],
+      compute(v){
+        const out=convertWeight(v.v, v.from, v.to);
+        const lines=[`${fmt(out,4)} ${v.to}`];
+        return {lines, historyExpr:`weight(${v.v} ${v.from} -> ${v.to})`, historyResult:lines.join("; ")};
+      }},
+  ];
+
+  /* =====================================================
+     History drawer + theme toggle
+     ===================================================== */
+  function initDrawer(){
+    const drawer=document.getElementById("historyDrawer");
+    const scrim=document.getElementById("scrim");
+    function open(){ drawer.classList.add("open"); scrim.classList.add("open"); }
+    function close(){ drawer.classList.remove("open"); scrim.classList.remove("open"); }
+    document.getElementById("historyBtn").addEventListener("click", open);
+    document.getElementById("closeHistory").addEventListener("click", close);
+    scrim.addEventListener("click", close);
+    document.getElementById("clearHistory").addEventListener("click", clearHistoryAll);
+  }
+
+  async function initTheme(){
+    const btn=document.getElementById("themeBtn");
+    let theme="dark";
+    try{
+      const res=await window.storage.get("theme", false);
+      if(res && res.value) theme=res.value;
+    }catch(e){ /* default dark */ }
+    applyTheme(theme);
+    btn.addEventListener("click", async ()=>{
+      theme = document.documentElement.classList.contains("light") ? "dark" : "light";
+      applyTheme(theme);
+      try{ await window.storage.set("theme", theme, false); }catch(e){ /* ignore */ }
+    });
+  }
+  function applyTheme(theme){
+    document.documentElement.classList.toggle("light", theme==="light");
+    document.getElementById("themeBtn").textContent = theme==="light" ? "\u25D0" : "\u25D6";
+  }
+
+  /* =====================================================
+     Init
+     ===================================================== */
+  buildBasicPanel();
+  buildSciPanel();
+  buildStatsPanel();
+  renderToolGroup(document.getElementById("financePanel"), financeTools);
+  renderToolGroup(document.getElementById("utilityPanel"), utilityTools);
+  initDrawer();
+  initTheme();
+  loadHistory();
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch(() => { /* offline support unavailable */ });
+    });
+  }
+
+})();
+</script>
+</body>
+</html>
